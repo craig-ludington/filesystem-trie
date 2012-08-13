@@ -38,16 +38,15 @@
 
 (defn create [root blob]
   "Create a new blob and return its key."
-  (let [key (uuid)
-        path (full-path key)]
-    (when  (mkdir-p root path)
-      (spit (blob-url key) blob)
+  (let [key (uuid)]
+    (when  (mkdir-p root (relative-path key))
+      (spit (blob-url root key) blob)
       key)))
 
 (defn fetch [root key]
   "Return the blob for the key."
   (try
-    (slurp (blob-url key))
+    (slurp (blob-url root key))
     (catch java.io.FileNotFoundException e
       nil)
     (catch java.io.IOException e
