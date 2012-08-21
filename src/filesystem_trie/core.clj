@@ -25,30 +25,38 @@
   ([root subdir s]
      (str root "/" subdir "/" (relative-path s))))
 
-(defn- mkdir-p [root subdir rel-path]
-  "Just like the Unix command 'mkdir -p'. True if root/subdir/rel-path was created, false if the path existed."
-  (io/make-parents (str root "/" subdir "/" rel-path "/x")))
+(defn- mkdir-p [path]
+  "Just like the Unix command 'mkdir -p'. Return path if created, nil if the path existed."
+  (when (io/make-parents (str path "/x"))
+    path))
 
-(defn- blob-path [root subdir key]
+(defn- blob-path [path]
   "Return a Unix absolute pathname for root/subdir/relative-path-for-key."
-  (str (full-path root subdir key) "/blob"))
+  (str path "/blob"))
 
-(defn- blob-url [root subdir key]
+(defn- blob-url [path]
   "Return a file:// url for root/subdir/relative-path-for-key."
-  (str "file://" (blob-path root subdir key)))
+  (str "file://" path "/blob"))
 
 (defn create [root blob]
   "Create a new blob and return its key."
-  (let [key (uuid)
-        hash (digest/sha-256 blob)]
-    (when  (mkdir-p root "key" (relative-path key))
-      (spit (blob-url root "/key" key) blob)
-      key)))
+  (let [key         (uuid)
+        digest-path (mkdir-p (full-path root "digest" (digest/sha-256 blob)))
+        key-path    (or (mkdir-p (full-path root "key" key))
+                        (throw (Throwable. (str "Collision for key '" key "'."))))]
+
+    (if digest-path
+      (do ;; New blob
+        (spit (blob-url digest-path) blob)
+        (spit (blob-url key-path)    blob))  ;; Fake hard link FIXME!!!
+      ;; Existing blob
+      (spit (blob-url key-path) blob))  ;; Fake hard link FIXME!!!
+    key))
 
 (defn fetch [root key]
   "Return the blob for the key."
   (try
-    (slurp (blob-url root "key" key))
+    (slurp (blob-url (full-path root "key" key) ))
     (catch java.io.FileNotFoundException e
       nil)
     (catch java.io.IOException e
@@ -57,7 +65,7 @@
 (defn delete [root key]
   "Destroy the blob for the key.  There is no 'Are you sure?'."
   (try
-    (do (io/delete-file (blob-path root "/key" key))
+    (do (io/delete-file (blob-path (full-path root "key" key)))
         key)
     (catch java.io.FileNotFoundException e
       nil)

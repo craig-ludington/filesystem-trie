@@ -17,15 +17,17 @@
 
 (deftest mkdir-p-test
   (setup)
-  (is (= true (#'filesystem-trie.core/mkdir-p "/tmp/blobs" "key" "a/b/c")))
-  (is (= "contents" (do (spit  "/tmp/blobs/key/a/b/c/stuff" "contents")
-                        (slurp "/tmp/blobs/key/a/b/c/stuff")))))
+  (let [path "/tmp/blobs/key/a/b/c"
+        result (#'filesystem-trie.core/mkdir-p path)]
+    (is (= path result))
+    (spit  "/tmp/blobs/key/a/b/c/stuff" "contents")
+    (is (= "contents" (slurp "/tmp/blobs/key/a/b/c/stuff")))))
 
 (deftest blob-path-test
-  (is (= "/tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-path "/tmp/blobs" "key" "abc"))))
+  (is (= "/tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-path "/tmp/blobs/key/a/b/c"))))
 
 (deftest blob-url-test
-  (is (= "file:///tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-url "/tmp/blobs" "key" "abc"))))
+  (is (= "file:///tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-url "/tmp/blobs/key/a/b/c"))))
 
 (deftest create-fetch-test
   (setup)
