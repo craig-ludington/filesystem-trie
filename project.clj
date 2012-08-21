@@ -1,7 +1,8 @@
 (defproject filesystem-trie "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "A filesystem-based trie library."
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]
-                 [conch "0.3.1"]])  ;; Only for testing ... is there a :test-dependencies?
+                 [conch "0.3.1"]
+                 [digest "1.4.0"]])

@@ -13,19 +13,19 @@
   (is (= "a/b/c" (#'filesystem-trie.core/relative-path "abc"))))
 
 (deftest full-path-test
-  (is (= "/tmp/blobs/a/b/c" (#'filesystem-trie.core/full-path "/tmp/blobs" "abc"))))
+  (is (= "/tmp/blobs/key/a/b/c" (#'filesystem-trie.core/full-path "/tmp/blobs" "key" "abc"))))
 
 (deftest mkdir-p-test
   (setup)
-  (is (= true (#'filesystem-trie.core/mkdir-p "/tmp/blobs" "a/b/c")))
-  (is (= "contents" (do (spit  "/tmp/blobs/a/b/c/stuff" "contents")
-                        (slurp "/tmp/blobs/a/b/c/stuff")))))
+  (is (= true (#'filesystem-trie.core/mkdir-p "/tmp/blobs" "key" "a/b/c")))
+  (is (= "contents" (do (spit  "/tmp/blobs/key/a/b/c/stuff" "contents")
+                        (slurp "/tmp/blobs/key/a/b/c/stuff")))))
 
 (deftest blob-path-test
-  (is (= "/tmp/blobs/a/b/c/blob" (#'filesystem-trie.core/blob-path "/tmp/blobs" "abc"))))
+  (is (= "/tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-path "/tmp/blobs" "key" "abc"))))
 
 (deftest blob-url-test
-  (is (= "file:///tmp/blobs/a/b/c/blob" (#'filesystem-trie.core/blob-url "/tmp/blobs" "abc"))))
+  (is (= "file:///tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-url "/tmp/blobs" "key" "abc"))))
 
 (deftest create-fetch-test
   (setup)
