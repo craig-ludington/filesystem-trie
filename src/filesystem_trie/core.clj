@@ -17,8 +17,9 @@
 
 (defn- uuid [] (str (java.util.UUID/randomUUID)))
 
-(defn- relative-path [s]
+(defn- relative-path
   "Return the string s with a / inserted after each character."
+  [s]
   (apply str (interpose "/" s)))
 
 (defn- full-path
@@ -26,21 +27,25 @@
   ([root subdir s]
      (str root "/" subdir "/" (relative-path s))))
 
-(defn- mkdir-p [path]
+(defn- mkdir-p
   "Just like the Unix command 'mkdir -p'. Return path if created, nil if the path existed."
+  [path]
   (when (io/make-parents (str path "/x"))
     path))
 
-(defn- blob-path [path]
+(defn- blob-path
   "Return a Unix absolute pathname for root/subdir/relative-path-for-key."
+  [path]
   (str path "/blob"))
 
-(defn- blob-url [path]
+(defn- blob-url
   "Return a file:// url for root/subdir/relative-path-for-key."
+  [path]
   (str "file://" path "/blob"))
 
-(defn create [root blob]
+(defn create
   "Create a new blob (or a new reference to an identical pre-existing blob) and return its key."
+  [root blob]
   (let [key             (uuid)
         digest-path     (full-path root "digest" (digest/sha-256 blob))
         key-path        (full-path root "key" key)
@@ -49,13 +54,14 @@
     (when (not key-created?) 
       (throw (Throwable. (str "Collision for key '" key "'."))))
     (when digest-created?
-      (spit (blob-url digest-path) blob))
+      (spit (blob-path digest-path) blob))
     (hard-link (blob-path digest-path)
-                 (blob-path key-path))
+               (blob-path key-path))
     key))
 
-(defn fetch [root key]
+(defn fetch
   "Return the blob for the key."
+  [root key]
   (try
     (slurp (blob-url (full-path root "key" key) ))
     (catch java.io.FileNotFoundException e
@@ -63,8 +69,9 @@
     (catch java.io.IOException e
       nil)))
 
-(defn delete [root key]
+(defn delete
   "Destroy the blob for the key.  There is no 'Are you sure?'."
+  [root key]
   (try
     (do (io/delete-file (blob-path (full-path root "key" key)))
         key)

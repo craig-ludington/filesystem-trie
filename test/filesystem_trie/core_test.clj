@@ -21,9 +21,7 @@
   (setup)
   (let [path "/tmp/blobs/key/a/b/c"
         result (#'filesystem-trie.core/mkdir-p path)]
-    (is (= path result))
-    (spit  "/tmp/blobs/key/a/b/c/stuff" "contents")
-    (is (= "contents" (slurp "/tmp/blobs/key/a/b/c/stuff")))))
+    (is (= path result))))
 
 (deftest blob-path-test
   (is (= "/tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-path "/tmp/blobs/key/a/b/c"))))
@@ -64,10 +62,24 @@
     (is (= nil           (delete root evil-key)))
     (is (= blob-to-store (fetch  root ignored-key)))))
 
+(defn link-count
+  "Parse the output of ls to get the link count of a file."
+  [path]
+  (let [tokens (clojure.string/split (sh/read-line (sh/proc "ls" "-l" path) :out) #" ")
+        token (when (< 2 (count tokens))
+                (nth tokens 2))]
+    (when link-count
+      (Integer/parseInt token))))
+
 (deftest digest-trie-create-test
   (setup)
   (let [blob-to-store "MIT-LL computer terrorism Guantanamo Kh-11 cybercash LABLINK Attorney General enigma ASPIC espionage"
         hash           (digest/sha-256 blob-to-store)
-        digest-path    (#'filesystem-core/mkdir-p (#'filesystem-core/full-path root "digest" (digest/sha-256 blob)))
-        key            (create root blob-to-store)]
-    ))
+        digest-path    (#'filesystem-trie.core/full-path root "digest" (digest/sha-256 blob-to-store))
+        digest-blob    (#'filesystem-trie.core/blob-path digest-path)
+        key            (create root blob-to-store)
+        key-path       (#'filesystem-trie.core/full-path root "key" key)
+        key-blob       (#'filesystem-trie.core/blob-path key-path)]
+    (is (= (slurp digest-blob) (slurp key-blob)))
+    (is (= 2 (link-count key-blob)))
+    (is (= 2 (link-count digest-blob)))))
