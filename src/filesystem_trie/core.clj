@@ -12,7 +12,8 @@
            cf. http://en.wikipedia.org/wiki/Trie"
      }
   (:require [clojure.java.io :as io]
-            [digest]))
+            [digest])
+  (:use [filesystem-trie.link]))
 
 (defn- uuid [] (str (java.util.UUID/randomUUID)))
 
@@ -39,18 +40,18 @@
   (str "file://" path "/blob"))
 
 (defn create [root blob]
-  "Create a new blob and return its key."
-  (let [key         (uuid)
-        digest-path (mkdir-p (full-path root "digest" (digest/sha-256 blob)))
-        key-path    (or (mkdir-p (full-path root "key" key))
-                        (throw (Throwable. (str "Collision for key '" key "'."))))]
-
-    (if digest-path
-      (do ;; New blob
-        (spit (blob-url digest-path) blob)
-        (spit (blob-url key-path)    blob))  ;; Fake hard link FIXME!!!
-      ;; Existing blob
-      (spit (blob-url key-path) blob))  ;; Fake hard link FIXME!!!
+  "Create a new blob (or a new reference to an identical pre-existing blob) and return its key."
+  (let [key             (uuid)
+        digest-path     (full-path root "digest" (digest/sha-256 blob))
+        key-path        (full-path root "key" key)
+        digest-created? (mkdir-p digest-path)
+        key-created?    (mkdir-p key-path)]
+    (when (not key-created?) 
+      (throw (Throwable. (str "Collision for key '" key "'."))))
+    (when digest-created?
+      (spit (blob-url digest-path) blob))
+    (hard-link (blob-path digest-path)
+                 (blob-path key-path))
     key))
 
 (defn fetch [root key]

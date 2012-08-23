@@ -1,0 +1,170 @@
+; SLIME 20100404
+user> java.nio.file.Files
+java.nio.file.Files
+user> (use 'clojure.repl)
+nil
+user> (dir java.nio.file.Files)
+; Evaluation aborted.
+user> (. java.nio.file.Files)
+; Evaluation aborted.
+user> (import '(java.nio.file.Files))
+nil
+user> (dir java.nio.file.Files)
+; Evaluation aborted.
+user> (dir java.nio.file)
+; Evaluation aborted.
+user> (new java.nio.file.Files)
+; Evaluation aborted.
+user> (new java.nio.file)
+; Evaluation aborted.
+user> (java.nio.file/createLink "/tmp/hobo" "/tmp/stuff")
+; Evaluation aborted.
+user> (java.nio.file/createLink "/tmp/hobo" "/tmp/stuff")
+; Evaluation aborted.
+user> (java.nio.file.Files/createLink "/tmp/hobo" "/tmp/stuff")
+; Evaluation aborted.
+user> (java.nio.file.Path. "/tmp/hobo")
+; Evaluation aborted.
+user> (Filesystems/getDefault)
+; Evaluation aborted.
+user> (java.Filesystems/getDefault)
+; Evaluation aborted.
+user> (java.lang.Filesystems/getDefault)
+; Evaluation aborted.
+user> (java.io.File.Filesystems/getDefault)
+; Evaluation aborted.
+user> (java.io.File. "/tmp/stuff")
+#<File /tmp/stuff>
+user> (def x (java.io.File. "/tmp/stuff"))
+#'user/x
+user> (.path x)
+; Evaluation aborted.
+user> (.pathName x)
+; Evaluation aborted.
+user> (import '(Filesystems))
+nil
+user> (Filesystems/getDefault)
+; Evaluation aborted.
+user> (Filesystem.)
+; Evaluation aborted.
+user> (Filesystems.)
+; Evaluation aborted.
+user> (import '(Filesystem))
+nil
+user> (Filesystems.)
+; Evaluation aborted.
+user> (Filesystem.)
+; Evaluation aborted.
+user> (new Filesystem)
+; Evaluation aborted.
+user> (java.nio.file.Filesystem)
+; Evaluation aborted.
+user> (java.nio.file.Filesystems)
+; Evaluation aborted.
+user> (import '(java.nio.file.Filesystems))
+nil
+user> (java.nio.file.Filesystems/getDefault)
+; Evaluation aborted.
+user> (new java.nio.file.Filesystems)
+; Evaluation aborted.
+user> (java.nio.file.Filesystems/getDefault)
+; Evaluation aborted.
+user> (import '(java.util Calendar))
+java.util.Calendar
+user> Calendar/FEBRUARY
+1
+user> (import '(java.nio.file Filesystems))
+; Evaluation aborted.
+user> (new java.nio.file.Path)
+; Evaluation aborted.
+user> (java.nio.file.FileSystem.)
+; Evaluation aborted.
+user> (java.nio.file.FileSystem/getDefault)
+; Evaluation aborted.
+user> (java.nio.file.FileSystem. getDefault)
+; Evaluation aborted.
+user> (java.nio.file.FileSystems. getDefault)
+; Evaluation aborted.
+user> (java.nio.file.FileSystem/getDefault)
+; Evaluation aborted.
+user> (getDefault java.nio.file.FileSystem)
+; Evaluation aborted.
+user> (. java.nio.file.FileSystem getDefault)
+; Evaluation aborted.
+user> (. java.nio.file.FileSystems getDefault)
+#<BsdFileSystem sun.nio.fs.BsdFileSystem@28338f64>
+user> (def fs (. java.nio.file.FileSystems getDefault))
+#'user/fs
+user> fs
+#<BsdFileSystem sun.nio.fs.BsdFileSystem@28338f64>
+user> (. fs getPath "/tmp" "stuff")
+; Evaluation aborted.
+user> (Ljava.lang.string. "stuff")
+; Evaluation aborted.
+user> (. fs getPath "/tmp" "stuff")
+; Evaluation aborted.
+user> (. fs getPath "/tmp")
+; Evaluation aborted.
+user> (. fs getPath "/tmp" "stuff")
+; Evaluation aborted.
+user> (.getPath fs "/tmp" "stuff")
+; Evaluation aborted.
+user> (. getPath fs "/tmp" "stuff")
+; Evaluation aborted.
+user> (.getPath fs ["/tmp" "stuff"])
+; Evaluation aborted.
+user> (.getPath fs ["/tmp" "stuff"])
+; Evaluation aborted.
+user> (fs/getPath ["/tmp" "stuff"])
+; Evaluation aborted.
+user> (class fs)
+sun.nio.fs.BsdFileSystem
+user> fs
+#<BsdFileSystem sun.nio.fs.BsdFileSystem@28338f64>
+user> (import java.io.File)
+java.io.File
+user> (java.io.File/fs)
+; Evaluation aborted.
+user> (.fs java.io.File)
+; Evaluation aborted.
+user> (new java.io.File)
+; Evaluation aborted.
+user> (new File)
+; Evaluation aborted.
+user> (new File "/tmp/stuff")
+#<File /tmp/stuff>
+user> (def stuff (new File "/tmp/stuff"))
+#'user/stuff
+user> (.getPath stuff)
+"/tmp/stuff"
+user> (import java.nio.file.Path)
+java.nio.file.Path
+user> (java.nio.file.Paths)
+; Evaluation aborted.
+user> java.nio.file.Paths
+java.nio.file.Paths
+user> (methods java.nio.file.Paths)
+; Evaluation aborted.
+user> (dir java.nio.file.Paths)
+; Evaluation aborted.
+user> (java.nio.file.Paths.Path/get "/tmp" "stuff")
+; Evaluation aborted.
+user> (java.nio.file.Paths/get "/tmp" "stuff")
+; Evaluation aborted.
+user> (java.nio.file.Paths/get ["/tmp" "stuff"])
+; Evaluation aborted.
+user> (java.nio.file.Paths/get ["file:///tmp/stuff"])
+; Evaluation aborted.
+user> (java.nio.file.Paths/get "file:///tmp/stuff")
+; Evaluation aborted.
+user> (java.nio.file.Paths/get "file:///tmp/stuff")
+; Evaluation aborted.
+user> (java.net.URI. "file:///tmp/stuff")
+#<URI file:///tmp/stuff>
+user> (java.nio.file.Paths/get (java.net.URI. "file:///tmp/stuff"))
+#<UnixPath /tmp/stuff>
+user> (class (java.nio.file.Paths/get (java.net.URI. "file:///tmp/stuff")))
+sun.nio.fs.UnixPath
+user> (ancestors (java.nio.file.Paths/get (java.net.URI. "file:///tmp/stuff")))
+nil
+user> 

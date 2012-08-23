@@ -3,7 +3,9 @@
   (:use clojure.test
         filesystem-trie.core))
 
-(defn setup [] (sh/proc "rm" "-rf" "/tmp/blobs"))
+(def root "/tmp/blobs")
+
+(defn setup [] (sh/proc "rm" "-rf" root))
 
 (deftest uuid-test
   (is (= true  (instance? String  (#'filesystem-trie.core/uuid))))
@@ -13,7 +15,7 @@
   (is (= "a/b/c" (#'filesystem-trie.core/relative-path "abc"))))
 
 (deftest full-path-test
-  (is (= "/tmp/blobs/key/a/b/c" (#'filesystem-trie.core/full-path "/tmp/blobs" "key" "abc"))))
+  (is (= "/tmp/blobs/key/a/b/c" (#'filesystem-trie.core/full-path root "key" "abc"))))
 
 (deftest mkdir-p-test
   (setup)
@@ -32,23 +34,23 @@
 (deftest create-fetch-test
   (setup)
   (let [blob-to-store   "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
-        key             (create "/tmp/blobs" blob-to-store)
-        blob-retrieved  (fetch  "/tmp/blobs" key)]
+        key             (create root blob-to-store)
+        blob-retrieved  (fetch  root key)]
     (is (= blob-to-store blob-retrieved))))
 
 (deftest create-delete-test
   (setup)
   (let [blob-to-store   "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
-        key             (create "/tmp/blobs" blob-to-store)]
-    (is (= key (delete "/tmp/blobs" key)))))
+        key             (create root blob-to-store)]
+    (is (= key (delete root key)))))
 
 (deftest nonexistent-blob-delete-test
   (let [key (#'filesystem-trie.core/uuid)]
-    (is (= nil (delete "/tmp/blobs" key)))))
+    (is (= nil (delete root key)))))
 
 ;; This is a Unix pathname injection test:
 ;;
-;;   (blob-path "/tmp/blobs" "***********************************")
+;;   (blob-path root "***********************************")
 ;;   ==> "/tmp/blobs/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/blob"
 ;;
 ;; In the shell, that would turn into a lot of filename that look something like this:
@@ -57,8 +59,15 @@
 (deftest wildcard-delete-test
   (setup)
   (let [blob-to-store   "Indigo benelux Aladdin Saudi Arabia jihad Albright csim Soviet Cocaine militia USDOJ e-bomb"
-       ignored-key      (create "/tmp/blobs" blob-to-store)
+       ignored-key      (create root blob-to-store)
        evil-key         "***********************************"]
-    (is (= nil           (delete "/tmp/blobs" evil-key)))
-    (is (= blob-to-store (fetch  "/tmp/blobs" ignored-key)))))
+    (is (= nil           (delete root evil-key)))
+    (is (= blob-to-store (fetch  root ignored-key)))))
 
+(deftest digest-trie-create-test
+  (setup)
+  (let [blob-to-store "MIT-LL computer terrorism Guantanamo Kh-11 cybercash LABLINK Attorney General enigma ASPIC espionage"
+        hash           (digest/sha-256 blob-to-store)
+        digest-path    (#'filesystem-core/mkdir-p (#'filesystem-core/full-path root "digest" (digest/sha-256 blob)))
+        key            (create root blob-to-store)]
+    ))

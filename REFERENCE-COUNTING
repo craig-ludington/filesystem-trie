@@ -1,0 +1,33 @@
+I've implemented reference-counted blob storage.
+
+A digest (sha-256) of the blob's content is calculated, and compared with every existing blob.
+(The comparison uses an internal index for the comparison, and is very fast.)
+
+The API is the same as before.  The client only knows about the GUUID key.  The digest is private to Blobber.
+Here's what it looks like in the REPL:
+
+  filesystem-trie.core> (create "/tmp/blobs" "This is my content")
+  "a3b3f117-828f-417a-a6a5-bc3475379c34"
+  filesystem-trie.core> (fetch "/tmp/blobs" "a3b3f117-828f-417a-a6a5-bc3475379c34")
+  "This is my content"
+  filesystem-trie.core> 
+
+A peek at the filesystem shows that there are two directory hierarchies, the one based on the GUUID (key),
+and a new one based on the sha-256 of the blob (digest):
+
+  ~ $ find /tmp/blobs -type f | xargs ls -ls
+  8 -rw-r--r--  2 craigl  wheel  18 Aug 22 22:43 /tmp/blobs/digest/e/e/3/0/2/8/2/9/a/2/6/9/d/5/d/b/4/b/1/0/1/8/8/b/2/d/0/0/6/e/4/c/8/b/b/6/3/9/b/2/5/d/7/3/b/9/2/d/b/3/9/4/4/e/c/5/f/a/d/d/d/4/0/d/blob
+  8 -rw-r--r--  2 craigl  wheel  18 Aug 22 22:43 /tmp/blobs/key/a/3/b/3/f/1/1/7/-/8/2/8/f/-/4/1/7/a/-/a/6/a/5/-/b/c/3/4/7/5/3/7/9/c/3/4/blob
+  ~ $ 
+
+You'll note that the link count for both blob directory entries is 2.  They refer to the same inode.
+
+I haven't implemented delete yet for the canonical reference to the blob (the one in digest/).
+However, delete still works for the reference to the blob in key/.
+All I have to do is check the link count for the blob in key/ and if a delete is requested,
+and the link count is 2, both delete both directory entries.
+
+For efficiency, I should probably also store a symbolic link to the canonical digest/ entry ... just to avoid 
+computing a digest again upon delete.
+
+
