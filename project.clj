@@ -1,4 +1,4 @@
-(defproject filesystem-trie "0.1.0-SNAPSHOT"
+(defproject filesystem-trie "0.99.0"
   :description "A filesystem-based trie library."
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
