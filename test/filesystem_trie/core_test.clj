@@ -1,11 +1,13 @@
 (ns filesystem-trie.core-test
   (:require [conch.core :as sh])
   (:use clojure.test
-        filesystem-trie.core))
+        filesystem-trie.core)
+  (:import (java.io FileInputStream StringReader)))
 
 (def root "/tmp/blobs")
 
-(defn setup [] (sh/proc "rm" "-rf" root))
+(defn setup []
+  (sh/proc "rm" "-rf" root))
 
 (deftest uuid-test
   (is (= true  (instance? String  (#'filesystem-trie.core/uuid))))
@@ -29,12 +31,22 @@
 (deftest blob-url-test
   (is (= "file:///tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-url "/tmp/blobs/key/a/b/c"))))
 
-(deftest create-fetch-test
+(deftest string-create-fetch-test
   (setup)
-  (let [blob-to-store   "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
-        key             (create root blob-to-store)
-        blob-retrieved  (fetch  root key)]
-    (is (= blob-to-store blob-retrieved))))
+  (let [s                "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
+        blob-to-store   (StringReader. s) 
+        key             (create root blob-to-store)]
+    (is (= s (fetch  root key)))))
+
+(deftest binary-create-test
+  (setup)
+  (let [path    (.getPath (java.io.File/createTempFile "blobber", ".tmp"))
+        stream  (FileInputStream. (do (sh/proc "dd" "if=/dev/urandom" (str "of=" )  path "bs=1024" "count=16")
+                                      (java.io.File/createTempFile "blobber", ".tmp")))
+        key     (create root stream)
+        stored  (#'filesystem-trie.core/blob-path (#'filesystem-trie.core/full-path root "key" key))
+        cmp     (sh/proc "cmp" path stored)]
+    (is (= 0 (.exitValue (:process cmp))))))
 
 (deftest create-delete-test
   (setup)

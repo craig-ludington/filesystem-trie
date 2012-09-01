@@ -11,6 +11,7 @@
            
            cf. http://en.wikipedia.org/wiki/Trie"
      }
+  (:import java.io.InputStream)
   (:require [clojure.java.io :as io]
             [digest])
   (:use [filesystem-trie.link]))
@@ -45,16 +46,24 @@
 
 (defn create
   "Create a new blob (or a new reference to an identical pre-existing blob) and return its key."
-  [root blob]
+  [^String root
+   ^InputStream blob]
   (let [key             (uuid)
-        digest-path     (full-path root "digest" (digest/sha-256 blob))
         key-path        (full-path root "key" key)
-        digest-created? (mkdir-p digest-path)
-        key-created?    (mkdir-p key-path)]
+        key-created?    (mkdir-p key-path)
+
+        tmpfile         (let [x (java.io.File/createTempFile "blobber", ".tmp")]
+                          (io/copy blob x)
+                          x) 
+        digest-path     (full-path root "digest" (digest/sha-256 tmpfile))
+        digest-created? (mkdir-p digest-path)]
+
     (when (not key-created?) 
       (throw (Throwable. (str "Collision for key '" key "'."))))
+
     (when digest-created?
-      (spit (blob-path digest-path) blob))
+      (.renameTo tmpfile (io/as-file (blob-path digest-path))))
+    
     (hard-link (blob-path digest-path)
                (blob-path key-path))
     key))
