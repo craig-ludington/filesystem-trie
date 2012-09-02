@@ -11,7 +11,7 @@
            
            cf. http://en.wikipedia.org/wiki/Trie"
      }
-  (:import java.io.InputStream)
+  (:import (java.io InputStream FileInputStream))
   (:require [clojure.java.io :as io]
             [digest])
   (:use [filesystem-trie.link]))
@@ -68,15 +68,15 @@
                (blob-path key-path))
     key))
 
-(defn fetch
+(defn ^InputStream fetch
   "Return the blob for the key."
-  [root key]
-  (try
-    (slurp (blob-url (full-path root "key" key) ))
-    (catch java.io.FileNotFoundException e
-      nil)
-    (catch java.io.IOException e
-      nil)))
+  [^String root
+   ^String key]
+  (try (FileInputStream. (blob-path (full-path root "key" key)))
+       (catch java.io.FileNotFoundException e
+         nil)
+       (catch java.io.IOException e
+         nil)))
 
 (defn delete
   "Destroy the blob for the key.  There is no 'Are you sure?'."
