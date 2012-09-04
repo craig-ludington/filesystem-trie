@@ -34,13 +34,12 @@
 
 (deftest string-create-fetch-test
   (setup)
-  (let [expected        "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
-        blob            (StringReader. expected)
-        key             (create root blob)
-        inputstream     (fetch root key)]
-    (let [fetched (byte-array (.available inputstream))]
-      (.read inputstream fetched)
-      (is (= (seq fetched) (seq (.getBytes expected)))))))
+  (let [expected    "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
+        key         (create root (StringReader. expected))
+        inputstream (fetch root key)
+        fetched     (byte-array (.available inputstream))]
+    (.read inputstream fetched)
+    (is (= (seq fetched) (seq (.getBytes expected))))))
 
 (deftest binary-create-test
   (setup)
