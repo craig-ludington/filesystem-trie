@@ -52,7 +52,7 @@
         key-path        (full-path root "key" key)
         key-created?    (mkdir-p key-path)
 
-        tmpfile         (let [x (java.io.File/createTempFile "blobber", ".tmp")]
+        tmpfile         (let [x (java.io.File/createTempFile "blobber" ".tmp" (io/as-file "/tmp/"))]
                           (io/copy blob x)
                           x) 
         digest-path     (full-path root "digest" (digest/sha-256 tmpfile))
