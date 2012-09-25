@@ -1,4 +1,4 @@
-(defproject filesystem-trie "1.0.0"
+(defproject filesystem-trie "1.0.1"
   :description "A filesystem-based trie library."
   :url "https://github.com/craig-ludington/filesystem-trie"
   :license {:name "Eclipse Public License"
