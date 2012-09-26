@@ -8,7 +8,7 @@
 (def root "/tmp/blobs")
 
 (defn setup []
-  (sh/proc "rm" "-rf" root))
+  (sh/proc "rm" "-rf" (str root "/key") (str root "/digest")))
 
 (deftest uuid-test
   (is (= true  (instance? String  (#'filesystem-trie.core/uuid))))
@@ -20,26 +20,25 @@
 (deftest full-path-test
   (is (= "/tmp/blobs/key/a/b/c" (#'filesystem-trie.core/full-path root "key" "abc"))))
 
-(deftest mkdir-p-test
+(deftest ensure-path-test
   (setup)
   (let [path "/tmp/blobs/key/a/b/c"
-        result (#'filesystem-trie.core/mkdir-p path)]
+        result (#'filesystem-trie.core/ensure-path path)]
     (is (= path result))))
+
+(deftest ensure-path-no-permissions-test
+  (setup)
+  (let [path       "/no/write/permissions/here"
+        result     (try (#'filesystem-trie.core/ensure-path path)
+                        (catch Throwable e
+                          :file-not-created))]
+    (is (= result :file-not-created))))
 
 (deftest blob-path-test
   (is (= "/tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-path "/tmp/blobs/key/a/b/c"))))
 
 (deftest blob-url-test
   (is (= "file:///tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-url "/tmp/blobs/key/a/b/c"))))
-
-(deftest string-create-fetch-test
-  (setup)
-  (let [expected    "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
-        key         (create root (StringReader. expected))
-        inputstream (fetch root key)
-        fetched     (byte-array (.available inputstream))]
-    (.read inputstream fetched)
-    (is (= (seq fetched) (seq (.getBytes expected))))))
 
 (deftest binary-create-test
   (setup)
@@ -63,12 +62,6 @@
     (io/copy in-stream out-file)
     (is (= 0
            (-> (sh/proc "cmp" in-path out-path) :process .exitValue)))))
-
-(deftest create-delete-test
-  (setup)
-  (let [blob-to-store   "Mahmoud Ahmadinejad clones Glock lynch covert video USCOI assassination Islam Abduganievich"
-        key             (create root blob-to-store)]
-    (is (= key (delete root key)))))
 
 (deftest nonexistent-blob-delete-test
   (let [key (#'filesystem-trie.core/uuid)]
