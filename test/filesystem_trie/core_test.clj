@@ -11,6 +11,8 @@
 (defn setup []
   (:exit (sh/sh "rm" "-rf" (str root "/key") (str root "/digest"))))
 
+(setup)
+
 (deftest uuid-test
   (is (= true  (instance? String  (#'filesystem-trie.core/uuid))))
   (is (= false (instance? Integer (#'filesystem-trie.core/uuid)))))
@@ -28,7 +30,6 @@
     (is (= path result))))
 
 (deftest ensure-path-no-permissions-test
-  (setup)
   (let [path       "/no/write/permissions/here"
         result     (try (#'filesystem-trie.core/ensure-path path)
                         (catch Throwable e
@@ -41,20 +42,23 @@
 (deftest blob-url-test
   (is (= "file:///tmp/blobs/key/a/b/c/blob" (#'filesystem-trie.core/blob-url "/tmp/blobs/key/a/b/c"))))
 
+(defn make-random-input-stream []
+    (let [tmp (.getPath (java.io.File/createTempFile "blobber" ".tmp"))]
+      (sh/sh "dd" "if=/dev/urandom" (str "of=" tmp) "bs=1024" "count=16")
+      {:path tmp :stream (FileInputStream. tmp)} ))
+
 (deftest binary-create-test
-  (setup)
-  (let [path    (.getPath (java.io.File/createTempFile "blobber" ".tmp"))
-        stream  (FileInputStream. (do (sh/sh "dd" "if=/dev/urandom" (str "of=" )  path "bs=1024" "count=16")
-                                      (java.io.File/createTempFile "blobber" ".tmp")))
+  (let [x       (make-random-input-stream)
+        path    (:path x)
+        stream  (:stream x)
         key     (create root stream)
         stored  (#'filesystem-trie.core/blob-path (#'filesystem-trie.core/full-path root "key" key))]
     (is (= 0 (:exit (sh/sh "cmp" path stored))))))
 
 (deftest binary-fetch-test
-  (setup)
-  (let [in-path     (.getPath (java.io.File/createTempFile "blobber" ".tmp"))
-        key         (create root (FileInputStream. (do (sh/sh "dd" "if=/dev/urandom" (str "of=" )  in-path "bs=1024" "count=16")
-                                                       (java.io.File/createTempFile "blobber" ".tmp"))))
+  (let [x           (make-random-input-stream)
+        in-path     (:path x)
+        key         (create root (:stream x))
         in-stream   (fetch root key)
         out-file    (java.io.File/createTempFile "blobber" ".tmp")
         out-path    (.getPath out-file)]
@@ -66,8 +70,7 @@
     (is (= nil (delete root key)))))
 
 (deftest wildcard-delete-test
-  (setup)
-  (create root "Indigo benelux Aladdin Saudi Arabia jihad Albright csim Soviet Cocaine militia USDOJ e-bomb")
+  (create root (StringReader. "Indigo benelux Aladdin Saudi Arabia jihad Albright csim Soviet Cocaine militia USDOJ e-bomb"))
   (is (= nil (delete root "***********************************"))))
 
 (defn link-count
@@ -82,12 +85,11 @@
       (Integer/parseInt token))))
 
 (deftest digest-trie-create-test
-  (setup)
   (let [blob-to-store "MIT-LL computer terrorism Guantanamo Kh-11 cybercash LABLINK Attorney General enigma ASPIC espionage"
         hash           (digest/sha-256 blob-to-store)
         digest-path    (#'filesystem-trie.core/full-path root "digest" (digest/sha-256 blob-to-store))
         digest-blob    (#'filesystem-trie.core/blob-path digest-path)
-        key            (create root blob-to-store)
+        key            (create root (StringReader. blob-to-store))
         key-path       (#'filesystem-trie.core/full-path root "key" key)
         key-blob       (#'filesystem-trie.core/blob-path key-path)]
     (is (= (slurp digest-blob) (slurp key-blob)))
