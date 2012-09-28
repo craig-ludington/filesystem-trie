@@ -1,6 +1,7 @@
 (ns filesystem-trie.core-test
-  (:require [conch.core :as sh]
-            [clojure.java.io :as io])
+  (:require [clojure.java.shell :as sh]
+            [clojure.java.io :as io]
+            [clojure.string :as str])
   (:use clojure.test
         filesystem-trie.core)
   (:import (java.io FileInputStream StringReader)))
@@ -8,7 +9,7 @@
 (def root "/tmp/blobs")
 
 (defn setup []
-  (sh/proc "rm" "-rf" (str root "/key") (str root "/digest")))
+  (:exit (sh/sh "rm" "-rf" (str root "/key") (str root "/digest"))))
 
 (deftest uuid-test
   (is (= true  (instance? String  (#'filesystem-trie.core/uuid))))
@@ -43,25 +44,22 @@
 (deftest binary-create-test
   (setup)
   (let [path    (.getPath (java.io.File/createTempFile "blobber" ".tmp"))
-        stream  (FileInputStream. (do (sh/proc "dd" "if=/dev/urandom" (str "of=" )  path "bs=1024" "count=16")
+        stream  (FileInputStream. (do (sh/sh "dd" "if=/dev/urandom" (str "of=" )  path "bs=1024" "count=16")
                                       (java.io.File/createTempFile "blobber" ".tmp")))
         key     (create root stream)
-        stored  (#'filesystem-trie.core/blob-path (#'filesystem-trie.core/full-path root "key" key))
-        cmp     (sh/proc "cmp" path stored)]
-    (is (= 0 (.exitValue (:process cmp))))))
+        stored  (#'filesystem-trie.core/blob-path (#'filesystem-trie.core/full-path root "key" key))]
+    (is (= 0 (:exit (sh/sh "cmp" path stored))))))
 
-;; TODO get rid of cmp
 (deftest binary-fetch-test
   (setup)
   (let [in-path     (.getPath (java.io.File/createTempFile "blobber" ".tmp"))
-        key         (create root (FileInputStream. (do (sh/proc "dd" "if=/dev/urandom" (str "of=" )  in-path "bs=1024" "count=16")
-                                                    (java.io.File/createTempFile "blobber" ".tmp"))))
+        key         (create root (FileInputStream. (do (sh/sh "dd" "if=/dev/urandom" (str "of=" )  in-path "bs=1024" "count=16")
+                                                       (java.io.File/createTempFile "blobber" ".tmp"))))
         in-stream   (fetch root key)
         out-file    (java.io.File/createTempFile "blobber" ".tmp")
         out-path    (.getPath out-file)]
     (io/copy in-stream out-file)
-    (is (= 0
-           (-> (sh/proc "cmp" in-path out-path) :process .exitValue)))))
+    (is (= 0 (:exit (sh/sh "cmp" in-path out-path))))))
 
 (deftest nonexistent-blob-delete-test
   (let [key (#'filesystem-trie.core/uuid)]
@@ -75,9 +73,11 @@
 (defn link-count
   "Parse the output of ls to get the link count of a file."
   [path]
-  (let [tokens (clojure.string/split (sh/read-line (sh/proc "ls" "-l" path) :out) #" ")
-        token (when (< 2 (count tokens))
-                (nth tokens 2))]
+  (let [lines  (str/split-lines (:out (sh/sh "ls" "-l" path)))
+        line   (first lines)
+        tokens (str/split line  #" ")
+        token  (when (< 2 (count tokens))
+                 (nth tokens 2))]
     (when link-count
       (Integer/parseInt token))))
 

@@ -80,11 +80,18 @@
                          (catch java.io.FileNotFoundException e
                            (throw (Throwable. (str e ". Can't create digest")))))
         digest-path (full-path root "digest" digest)]
+
     (ensure-path key-path)
     (ensure-path digest-path)
-    (try (.renameTo tmpfile (io/as-file (blob-path digest-path)))
-         (catch java.nio.file.NoSuchFileException e
-           (throw (Throwable. (str e ". Can't rename file.")))))
+
+    (if (is-file? (blob-path digest-path))
+      ;; Existing blob
+      (.delete tmpfile)
+      ;; New blob
+      (try (.renameTo tmpfile (io/as-file (blob-path digest-path)))
+           (catch java.nio.file.NoSuchFileException e
+             (throw (Throwable. (str e ". Can't rename file."))))))
+    
     (hard-link (blob-path digest-path)
                (blob-path key-path))
     key))
