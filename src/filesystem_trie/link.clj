@@ -7,5 +7,12 @@
   (java.nio.file.Paths/get (java.net.URI. (str "file://" p))))
 
 (defn hard-link [existing new]
-  "Link the Unix pathname new to the Unix pathname existing and return a Java Path for new."
-  (java.nio.file.Files/createLink (java-path new) (java-path existing)))
+  "Link new to existing, returning :success :file-already-exists or :too-many-links."
+  (try (do (java.nio.file.Files/createLink (java-path new) (java-path existing))
+           :success)
+       (catch java.nio.file.FileAlreadyExistsException e
+         :file-already-exists)
+       (catch java.nio.file.FileSystemException e
+         (if (re-find #"Too many links$" (str e))
+           :too-many-links
+           (throw e)))))

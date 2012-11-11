@@ -67,34 +67,37 @@
   [path]
   (str "file://" path "/blob"))
 
+(defn- mv
+  "Return true if existing file was moved to new file."
+  [existing new]
+  (.renameTo (io/as-file existing) (io/as-file new)))
+
 (defn create
   "Create a new blob (or a new reference to an identical pre-existing blob) and return its key."
   [^String root
-   ^InputStream blob]
-  (let [key         (uuid)
-        key-path    (full-path root "key" key)
-        tmpfile     (let [x (ensure-tempfile (str root "/tmp/"))]
-                      (io/copy blob x)
-                      x)
-        digest      (try (digest/sha-256 tmpfile)
-                         (catch java.io.FileNotFoundException e
-                           (throw (Throwable. (str e ". Can't create digest")))))
-        digest-path (full-path root "digest" digest)]
+   ^InputStream stream]
+  (let [key           (uuid)
+        key-path      (ensure-path (full-path root "key" key))
+        key-file      (blob-path key-path)
+        tmp           (ensure-tempfile key-path)
+        digest        (do (io/copy stream tmp)
+                          (digest/sha-256 tmp))
+        identity-path (ensure-path (full-path root "digest" digest))
+        identity-file (blob-path identity-path)]
 
-    (ensure-path key-path)
-    (ensure-path digest-path)
-
-    (if (is-file? (blob-path digest-path))
+    (if (is-file? identity-file)
       ;; Existing blob
-      (.delete tmpfile)
-      ;; New blob
-      (try (.renameTo tmpfile (io/as-file (blob-path digest-path)))
-           (catch java.nio.file.NoSuchFileException e
-             (throw (Throwable. (str e ". Can't rename file."))))))
-    
-    (hard-link (blob-path digest-path)
-               (blob-path key-path))
-    key))
+      (let [x (hard-link identity-file key-file)]
+        (cond (= :success x)        (and (io/delete-file tmp)
+                                         key) 
+              (= :too-many-links x) (and (mv identity-file (ensure-tempfile identity-path))
+                                         (mv tmp identity-file)
+                                         (= :success (hard-link identity-file key-file))
+                                         key)))
+      ;; Novel blob
+      (and (mv tmp identity-file)
+           (= :success (hard-link identity-file key-file))
+           key))))
 
 (defn ^InputStream fetch
   "Return the blob for the key."
