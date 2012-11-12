@@ -9,7 +9,7 @@
 (def root "/tmp/blobs")
 
 (defn setup []
-  (:exit (sh/sh "rm" "-rf" (str root "/key") (str root "/digest"))))
+  (:exit (sh/sh "rm" "-rf" root)))
 
 (setup)
 
@@ -70,7 +70,7 @@
     (is (= nil (delete root key)))))
 
 (deftest wildcard-delete-test
-  (create root (StringReader. "Indigo benelux Aladdin Saudi Arabia jihad Albright csim Soviet Cocaine militia USDOJ e-bomb"))
+  (create root (StringReader. "Indigo benelux Aladdin Saudi Arabia jihad Albright csim Soviet Cocaine militia USDOJ e-bomb\n"))
   (is (= nil (delete root "***********************************"))))
 
 (defn link-count
@@ -85,7 +85,7 @@
       (Integer/parseInt token))))
 
 (deftest digest-trie-create-test
-  (let [blob-to-store "MIT-LL computer terrorism Guantanamo Kh-11 cybercash LABLINK Attorney General enigma ASPIC espionage"
+  (let [blob-to-store "MIT-LL computer terrorism Guantanamo Kh-11 cybercash LABLINK Attorney General enigma ASPIC espionage\n"
         hash           (digest/sha-256 blob-to-store)
         digest-path    (#'filesystem-trie.core/full-path root "digest" (digest/sha-256 blob-to-store))
         digest-blob    (#'filesystem-trie.core/blob-path digest-path)
@@ -95,3 +95,28 @@
     (is (= (slurp digest-blob) (slurp key-blob)))
     (is (= 2 (link-count key-blob)))
     (is (= 2 (link-count digest-blob)))))
+
+(defn link-too-many-times
+  "Create too many links to original so the next link attempt will fail."
+  [original new-dir]
+  (dotimes [x 32769]
+    (#'filesystem-trie.link/hard-link original (str new-dir "/" x))))
+
+(deftest digest-with-too-many-links-test
+  (setup)
+  (let [blob-to-store "Too many links, so we had to make a second blob in the digest/ directory.\n"
+        hash           (digest/sha-256 blob-to-store)
+        digest-path    (#'filesystem-trie.core/full-path root "digest" (digest/sha-256 blob-to-store))
+        digest-blob    (#'filesystem-trie.core/blob-path digest-path)]
+
+    (create root (StringReader. blob-to-store))
+    (is (= 2 (link-count digest-blob)))
+
+    (println "digest-blob: " digest-blob)
+    (link-too-many-times digest-blob (#'filesystem-trie.core/ensure-path (str root "/work")))
+    (is (=  32767 (link-count digest-blob)))
+
+    ;; (create root (StringReader. blob-to-store))
+    ;; (is (= 2 (link-count digest-blob)))
+
+    ))
