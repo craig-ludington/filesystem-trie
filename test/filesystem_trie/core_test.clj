@@ -112,11 +112,11 @@
     (create root (StringReader. blob-to-store))
     (is (= 2 (link-count digest-blob)))
 
-    (println "digest-blob: " digest-blob)
     (link-too-many-times digest-blob (#'filesystem-trie.core/ensure-path (str root "/work")))
     (is (=  32767 (link-count digest-blob)))
 
-    ;; (create root (StringReader. blob-to-store))
-    ;; (is (= 2 (link-count digest-blob)))
+    ;; Next create hits the maximum link count, moving the digest-blob to some temp file name and creating a new file called "blob"
+    (create root (StringReader. blob-to-store))
+    (is (= 2 (link-count digest-blob)))
 
     ))
