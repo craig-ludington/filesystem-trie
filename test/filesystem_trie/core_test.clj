@@ -73,14 +73,25 @@
   (create root (StringReader. "Indigo benelux Aladdin Saudi Arabia jihad Albright csim Soviet Cocaine militia USDOJ e-bomb\n"))
   (is (= nil (delete root "***********************************"))))
 
+(defn os-type
+  "Return Darwin or Linux based on the output of uname -a"
+  []
+  (let [lines  (str/split-lines (:out (sh/sh "uname" "-a")))
+        line   (first lines)
+        tokens (str/split line  #" ")]
+    (first tokens)))
+
 (defn link-count
   "Parse the output of ls to get the link count of a file."
   [path]
   (let [lines  (str/split-lines (:out (sh/sh "ls" "-l" path)))
         line   (first lines)
         tokens (str/split line  #" ")
-        token  (when (< 2 (count tokens))
-                 (nth tokens 2))]
+        offset (let [os (os-type)]
+                 (cond (= os "Linux")  1
+                       (= os "Darwin") 2))
+        token  (when (< offset (count tokens))
+                 (nth tokens offset))]
     (when link-count
       (Integer/parseInt token))))
 
@@ -107,13 +118,16 @@
   (let [blob-to-store "Too many links, so we had to make a second blob in the digest/ directory.\n"
         hash           (digest/sha-256 blob-to-store)
         digest-path    (#'filesystem-trie.core/full-path root "digest" (digest/sha-256 blob-to-store))
-        digest-blob    (#'filesystem-trie.core/blob-path digest-path)]
+        digest-blob    (#'filesystem-trie.core/blob-path digest-path)
+        max-links      (let [os (os-type)]
+                         (cond (= os "Linux")  32000    ;; I fear this is valid for ext3 only.
+                               (= os "Darwin") 32767))]
 
     (create root (StringReader. blob-to-store))
     (is (= 2 (link-count digest-blob)))
 
     (link-too-many-times digest-blob (#'filesystem-trie.core/ensure-path (str root "/work")))
-    (is (=  32767 (link-count digest-blob)))
+    (is (=  max-links (link-count digest-blob)))
 
     ;; Next create hits the maximum link count, moving the digest-blob to some temp file name and creating a new file called "blob"
     (create root (StringReader. blob-to-store))
