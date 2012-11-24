@@ -11,32 +11,19 @@
 
            cf. http://en.wikipedia.org/wiki/Trie"
      }
-  (:import (java.io InputStream FileInputStream File))
+  (:import (java.io InputStream FileInputStream FileOutputStream File))
   (:require [clojure.java.io :as io]
             [digest])
   (:use [filesystem-trie.link]))
 
 (defn- uuid [] (str (java.util.UUID/randomUUID)))
 
-(defn- relative-path
-  "Return the string s with a / inserted after each character."
-  [s]
-  (apply str (interpose "/" s)))
+(defn- is-file? [p] (.isFile (io/as-file p)))
+(defn- is-directory? [p] (.isDirectory (io/as-file p)))
 
-(defn- full-path
-  "Return a filesystem path starting at root/subdir for the string s."
-  ([root subdir s]
-     (str root "/" subdir "/" (relative-path s))))
-
-(defn is-file?
-  "True if p is a file."
-  [p]
-  (.isFile (File. p)))
-
-(defn is-directory?
-  "True if p is a directory."
-  [p]
-  (.isDirectory (File. p)))
+(defn- full-path [root subdir s] (str root "/" subdir "/" (apply str (interpose "/" s))))
+(defn- blob-path [path] (str path "/blob"))
+(defn- blob-url  [path] (str "file://" path "/blob"))
 
 (defn- ensure-path
   "Create all the directories in path if they don't already exist.
@@ -49,23 +36,8 @@
           path
           (throw (Throwable. (str "Can't create directory " path)))))))
 
-(defn- ensure-tempfile
-  "Return a new temporary file in tmpdir."
-  [tmpdir]
-  (ensure-path tmpdir)
-  (try (java.io.File/createTempFile "blobber" ".tmp" (io/as-file tmpdir))
-       (catch java.io.IOException e
-         (throw (Throwable. (str e ".  Can't create temp file in '" tmpdir "'."))))))
-
-(defn- blob-path
-  "Return a Unix absolute pathname for root/subdir/relative-path-for-key."
-  [path]
-  (str path "/blob"))
-
-(defn- blob-url
-  "Return a file:// url for root/subdir/relative-path-for-key."
-  [path]
-  (str "file://" path "/blob"))
+(defn- ensure-key-path    [root key]    (ensure-path (full-path root "key"    key)))
+(defn- ensure-digest-path [root digest] (ensure-path (full-path root "digest" digest)))
 
 (defn- mv
   "Return true if existing file was moved to new file."
@@ -76,27 +48,27 @@
   "Create a new blob (or a new reference to an identical pre-existing blob) and return its key."
   [^String root
    ^InputStream stream]
-  (let [key           (uuid)
-        key-path      (ensure-path (full-path root "key" key))
-        key-file      (blob-path key-path)
-        tmp           (ensure-tempfile key-path)
-        digest        (do (io/copy stream tmp)
-                          (digest/sha-256 tmp))
-        identity-path (ensure-path (full-path root "digest" digest))
-        identity-file (blob-path identity-path)]
+  (let [key         (uuid) ;; TODO handle collisions
+        key-path    (ensure-key-path root key)
+        key-file    (blob-path key-path)
+        new         (str key-path "/new")
+        _           (with-open [f (FileOutputStream. new)] (io/copy stream f))
+        digest      (with-open [f (FileInputStream. new)]  (digest/sha-256 f)) 
+        digest-path (ensure-digest-path root digest) ;; TODO compare bytes?
+        digest-file (blob-path digest-path)]
 
-    (if (is-file? identity-file)
+    (if (is-file? digest-file)
       ;; Existing blob
-      (let [x (hard-link identity-file key-file)]
-        (cond (= :success x)        (and (io/delete-file tmp)
+      (let [x (hard-link digest-file key-file)]
+        (cond (= :success x)        (and (io/delete-file new)
                                          key) 
-              (= :too-many-links x) (and (mv identity-file (ensure-tempfile identity-path))
-                                         (mv tmp identity-file)
-                                         (= :success (hard-link identity-file key-file))
+              (= :too-many-links x) (and (io/delete-file digest-file)
+                                         (mv new digest-file)
+                                         (= :success (hard-link digest-file key-file))
                                          key)))
       ;; Novel blob
-      (and (mv tmp identity-file)
-           (= :success (hard-link identity-file key-file))
+      (and (mv new digest-file)
+           (= :success (hard-link digest-file key-file))
            key))))
 
 (defn ^InputStream fetch

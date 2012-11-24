@@ -17,9 +17,6 @@
   (is (= true  (instance? String  (#'filesystem-trie.core/uuid))))
   (is (= false (instance? Integer (#'filesystem-trie.core/uuid)))))
 
-(deftest relative-path-test
-  (is (= "a/b/c" (#'filesystem-trie.core/relative-path "abc"))))
-
 (deftest full-path-test
   (is (= "/tmp/blobs/key/a/b/c" (#'filesystem-trie.core/full-path root "key" "abc"))))
 
@@ -129,7 +126,9 @@
     (link-too-many-times digest-blob (#'filesystem-trie.core/ensure-path (str root "/work")))
     (is (=  max-links (link-count digest-blob)))
 
-    ;; Next create hits the maximum link count, moving the digest-blob to some temp file name and creating a new file called "blob"
+    ;; Next create hits the maximum link count.
+    ;; The digest-blob is deleted.
+    ;; A new digest-blob is created.
     (create root (StringReader. blob-to-store))
     (is (= 2 (link-count digest-blob)))
 
