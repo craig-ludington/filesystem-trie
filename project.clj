@@ -1,4 +1,4 @@
-(defproject filesystem-trie "1.0.3-too-many-links"
+(defproject filesystem-trie "1.0.3-alt-too-many-links"
   :description "A filesystem-based trie library."
   :url "https://github.com/craig-ludington/filesystem-trie"
   :license {:name "Eclipse Public License"
